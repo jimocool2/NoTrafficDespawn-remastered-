@@ -1,6 +1,7 @@
 using Game;
+using NoTrafficDespawn;
 
-namespace NoTrafficDespawn
+namespace Systems
 {
     public partial class NoTrafficDespawnSystem : GameSystemBase
     {
