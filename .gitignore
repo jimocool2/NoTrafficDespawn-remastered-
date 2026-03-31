@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 /NoTrafficDespawn/Library/*
+/NoTrafficDespawn/temp/*

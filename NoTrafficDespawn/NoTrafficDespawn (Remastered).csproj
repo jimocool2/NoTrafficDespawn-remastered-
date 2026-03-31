@@ -12,6 +12,13 @@
 	<Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />
 
 	<ItemGroup>
+		<Compile Remove="obj\**\*.cs" />
+		<Compile Remove="temp\**\*.cs" />
+		<EmbeddedResource Remove="temp\**\*" />
+		<None Remove="temp\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="Game">
 			<Private>false</Private>
 		</Reference>
@@ -49,6 +56,9 @@
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="Unity.Mathematics">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.Mathematics">
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>
