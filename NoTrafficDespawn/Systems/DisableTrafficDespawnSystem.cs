@@ -15,6 +15,7 @@ namespace NoTrafficDespawn
     {
         private StuckMovingObjectSystem stuckMovingObjectSystem;
         private SimulationSystem simulationSystem;
+        private EntityCommandBufferSystem entityCommandBufferSystem;
         private EntityQuery stuckObjectQuery;
         private EntityQuery unstuckObjectQuery;
 
@@ -28,7 +29,6 @@ namespace NoTrafficDespawn
         private bool despawnServiceVehicles;
         private bool despawnTaxis;
 
-        private int frameCount;
         public DespawnBehavior despawnBehavior;
         public bool highlightStuckObjects;
         public int deadlockLingerFrames;
@@ -40,11 +40,17 @@ namespace NoTrafficDespawn
 
         private bool shouldDisable;
 
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
+        {
+            return 4;
+        }
+
         protected override void OnCreate()
         {
             base.OnCreate();
             this.stuckMovingObjectSystem = World.GetOrCreateSystemManaged<StuckMovingObjectSystem>();
             this.simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            this.entityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
 
             Mod.INSTANCE.settings.onSettingsApplied += settings =>
             {
@@ -91,9 +97,7 @@ namespace NoTrafficDespawn
         protected override void OnUpdate()
         {
             if (this.simulationSystem.selectedSpeed <= 0)
-            {
                 return;
-            }
 
             if (this.shouldDisable)
             {
@@ -102,98 +106,65 @@ namespace NoTrafficDespawn
                 return;
             }
 
-            if (frameCount++ % 4 != 0)
+            // --- Main thread: highlightDirty cleanup (infrequent) ---
+            if (highlightDirty)
             {
-                return;
+                NativeArray<Entity> allStuck = this.stuckObjectQuery.ToEntityArray(Allocator.Temp);
+                for (int i = 0; i < allStuck.Length; i++)
+                {
+                    if (EntityManager.HasComponent<Highlighted>(allStuck[i]))
+                    {
+                        EntityManager.RemoveComponent<Highlighted>(allStuck[i]);
+                        EntityManager.AddComponent<BatchesUpdated>(allStuck[i]);
+                    }
+                    if (EntityManager.HasComponent<UnstuckObject>(allStuck[i]))
+                    {
+                        EntityManager.RemoveComponent<UnstuckObject>(allStuck[i]);
+                        EntityManager.AddComponent<Updated>(allStuck[i]);
+                    }
+                }
+                allStuck.Dispose();
+                highlightDirty = false;
             }
 
-            NativeArray<Entity> stuckEntities = this.stuckObjectQuery.ToEntityArray(Allocator.Temp);
-            NativeArray<StuckObject> stuckComponents = this.stuckObjectQuery.ToComponentDataArray<StuckObject>(Allocator.Temp);
+            // --- Job: process stuck entities ---
+            NativeReference<int> removalCount = new NativeReference<int>(
+                this.maxStuckObjectRemovalCount, Allocator.TempJob);
 
-            int availableRemovalCount = this.maxStuckObjectRemovalCount;
+            EntityCommandBuffer commandBuffer = this.entityCommandBufferSystem.CreateCommandBuffer();
 
-            for (int i = 0; i < stuckEntities.Length; i++)
+            ProcessStuckEntitiesJob job = new ProcessStuckEntitiesJob
             {
-                Entity stuckEntity = stuckEntities[i];
-                bool updated = false;
+                m_EntityType = SystemAPI.GetEntityTypeHandle(),
+                m_StuckObjectType = SystemAPI.GetComponentTypeHandle<StuckObject>(isReadOnly: false),
+                m_BlockerData = SystemAPI.GetComponentLookup<Blocker>(isReadOnly: true),
+                m_DeliveryTruckData = SystemAPI.GetComponentLookup<DeliveryTruck>(isReadOnly: true),
+                m_CreatureData = SystemAPI.GetComponentLookup<Creature>(isReadOnly: true),
+                m_PersonalCarData = SystemAPI.GetComponentLookup<PersonalCar>(isReadOnly: true),
+                m_PassengerTransportData = SystemAPI.GetComponentLookup<PassengerTransport>(isReadOnly: true),
+                m_TaxiData = SystemAPI.GetComponentLookup<Taxi>(isReadOnly: true),
+                m_PathOwnerData = SystemAPI.GetComponentLookup<PathOwner>(isReadOnly: false),
+                commandBuffer = commandBuffer,
+                availableRemovalCount = removalCount,
+                despawnBehavior = this.despawnBehavior,
+                highlightStuckObjects = this.highlightStuckObjects,
+                despawnAll = this.despawnAll,
+                despawnCommercialVehicles = this.despawnCommercialVehicles,
+                despawnPedestrians = this.despawnPedestrians,
+                despawnPersonalVehicles = this.despawnPersonalVehicles,
+                despawnPublicTransit = this.despawnPublicTransit,
+                despawnServiceVehicles = this.despawnServiceVehicles,
+                despawnTaxis = this.despawnTaxis,
+                deadlockLingerFrames = this.deadlockLingerFrames,
+            };
 
-                if (highlightDirty)
-                {
-                    if (EntityManager.HasComponent<Highlighted>(stuckEntity))
-                    {
-                        EntityManager.RemoveComponent<Highlighted>(stuckEntity);
-                        EntityManager.AddComponent<BatchesUpdated>(stuckEntity);
-                    }
+            base.Dependency = JobChunkExtensions.Schedule(job, this.stuckObjectQuery, base.Dependency);
+            this.entityCommandBufferSystem.AddJobHandleForProducer(base.Dependency);
 
-                    if (EntityManager.HasComponent<UnstuckObject>(stuckEntity))
-                    {
-                        EntityManager.RemoveComponent<UnstuckObject>(stuckEntity);
-                        updated = true;
-                    }
-                }
+            // NativeReference must be disposed after the job completes
+            base.Dependency = removalCount.Dispose(base.Dependency);
 
-                if (!EntityManager.HasComponent<Blocker>(stuckEntity))
-                {
-                    EntityManager.RemoveComponent<StuckObject>(stuckEntity);
-                    updated = true;
-                    if (this.highlightStuckObjects)
-                    {
-                        EntityManager.RemoveComponent<Highlighted>(stuckEntity);
-                        EntityManager.AddComponent<BatchesUpdated>(stuckEntity);
-                    }
-                }
-                else
-                {
-                    StuckObject stuck = stuckComponents[i];
-                    if (this.despawnBehavior != DespawnBehavior.NoDespawn)
-                    {
-                        if ((stuck.frameCount += 4) >= this.deadlockLingerFrames && availableRemovalCount > 0)
-                        {
-                            if (this.despawnAll ||
-                                (this.despawnCommercialVehicles && EntityManager.HasComponent<DeliveryTruck>(stuckEntity)) ||
-                                (this.despawnPedestrians && EntityManager.HasComponent<Creature>(stuckEntity)) ||
-                                (this.despawnPersonalVehicles && EntityManager.HasComponent<PersonalCar>(stuckEntity)) ||
-                                (this.despawnPublicTransit && EntityManager.HasComponent<PassengerTransport>(stuckEntity)) ||
-                                (this.despawnTaxis && EntityManager.HasComponent<Taxi>(stuckEntity)) ||
-                                (this.despawnServiceVehicles &&
-                                    !EntityManager.HasComponent<Creature>(stuckEntity) &&
-                                    !EntityManager.HasComponent<PersonalCar>(stuckEntity) &&
-                                    !EntityManager.HasComponent<Taxi>(stuckEntity) &&
-                                    !EntityManager.HasComponent<DeliveryTruck>(stuckEntity) &&
-                                    !EntityManager.HasComponent<PassengerTransport>(stuckEntity)))
-                            {
-                                if (EntityManager.HasComponent<PathOwner>(stuckEntity))
-                                {
-                                    PathOwner pathOwner = EntityManager.GetComponentData<PathOwner>(stuckEntity);
-                                    pathOwner.m_State |= PathFlags.Stuck;
-                                    EntityManager.SetComponentData(stuckEntity, pathOwner);
-                                    updated = true;
-                                    --availableRemovalCount;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            EntityManager.SetComponentData(stuckEntity, stuck);
-                            updated = true;
-                        }
-                    }
-
-                    if (this.highlightStuckObjects && !EntityManager.HasComponent<Highlighted>(stuckEntity))
-                    {
-                        EntityManager.AddComponent<Highlighted>(stuckEntity);
-                        EntityManager.AddComponent<BatchesUpdated>(stuckEntity);
-                    }
-                }
-
-                if (updated && !EntityManager.HasComponent<Updated>(stuckEntity))
-                {
-                    EntityManager.AddComponent<Updated>(stuckEntity);
-                }
-            }
-
-            highlightDirty = false;
-
+            // --- Main thread: unstuck entity cleanup (infrequent) ---
             if (this.highlightStuckObjects)
             {
                 NativeArray<Entity> unstuckEntities = this.unstuckObjectQuery.ToEntityArray(Allocator.Temp);
@@ -203,11 +174,9 @@ namespace NoTrafficDespawn
                     EntityManager.RemoveComponent<Highlighted>(unstuckEntities[i]);
                     EntityManager.RemoveComponent<UnstuckObject>(unstuckEntities[i]);
                     EntityManager.AddComponent<BatchesUpdated>(unstuckEntities[i]);
-                    if (!EntityManager.HasComponent<Updated>(unstuckEntities[i]))
-                    {
-                        EntityManager.AddComponent<Updated>(unstuckEntities[i]);
-                    }
+                    EntityManager.AddComponent<Updated>(unstuckEntities[i]);
                 }
+                unstuckEntities.Dispose();
             }
         }
 
