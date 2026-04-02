@@ -46,8 +46,6 @@ namespace NoTrafficDespawn
                 stuckCheckJob.m_DispatchedData = SystemAPI.GetComponentLookup<Dispatched>(isReadOnly: true);
                 stuckCheckJob.m_PathOwnerType = SystemAPI.GetComponentTypeHandle<PathOwner>();
                 stuckCheckJob.m_AnimalCurrentLaneType = SystemAPI.GetComponentTypeHandle<AnimalCurrentLane>();
-                stuckCheckJob.stuckObjectLookup = SystemAPI.GetComponentLookup<StuckObject>(true);
-                stuckCheckJob.unstuckObjectLookup = SystemAPI.GetComponentLookup<UnstuckObject>(true);
                 stuckCheckJob.minStuckSpeed = (byte)this.disableTrafficDespawnSystem.maxStuckObjectSpeed;
                 stuckCheckJob.maxTraversalCount = this.disableTrafficDespawnSystem.deadlockSearchDepth;
                 stuckCheckJob.deadlocksOnly = this.disableTrafficDespawnSystem.despawnBehavior == DespawnBehavior.DespawnDeadlocksOnly;
@@ -70,7 +68,6 @@ namespace NoTrafficDespawn
                 stuckCheckJob.m_DispatchedData = GetComponentLookup<Dispatched>(isReadOnly: true);
                 stuckCheckJob.m_PathOwnerType = GetComponentTypeHandle<PathOwner>();
                 stuckCheckJob.m_AnimalCurrentLaneType = GetComponentTypeHandle<AnimalCurrentLane>();
-                stuckCheckJob.stuckObjectLookup = GetComponentLookup<StuckObject>(true);
                 stuckCheckJob.minStuckSpeed = (byte)this.disableTrafficDespawnSystem.maxStuckObjectSpeed;
                 stuckCheckJob.maxTraversalCount = this.disableTrafficDespawnSystem.deadlockSearchDepth;
                 stuckCheckJob.deadlocksOnly = this.disableTrafficDespawnSystem.despawnBehavior == DespawnBehavior.DespawnDeadlocksOnly;

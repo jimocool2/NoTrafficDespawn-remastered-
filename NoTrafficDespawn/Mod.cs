@@ -8,7 +8,7 @@ namespace NoTrafficDespawn
 {
     public class Mod : IMod
     {
-        public static ILog log = LogManager.GetLogger($"{nameof(NoTrafficDespawn)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
+        public static ILog log = LogManager.GetLogger($"{nameof(NoTrafficDespawn)}.{nameof(Mod)}").SetShowsErrorsInUI(true);
         public static Mod INSTANCE;
 
         public TrafficDespawnSettings settings;

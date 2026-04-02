@@ -35,6 +35,8 @@ namespace NoTrafficDespawn
         public int deadlockSearchDepth;
         public int maxStuckObjectRemovalCount;
         public int maxStuckObjectSpeed;
+        public bool DespawnAll => this.despawnAll;
+        public bool DespawnPublicTransit => this.despawnPublicTransit;
 
         private bool shouldDisable;
 

@@ -25,7 +25,6 @@ namespace NoTrafficDespawn
         [ReadOnly] public ComponentLookup<Controller> m_ControllerData;
         [ReadOnly] public ComponentLookup<CurrentVehicle> m_CurrentVehicleData;
         [ReadOnly] public ComponentLookup<Dispatched> m_DispatchedData;
-        [ReadOnly] public ComponentLookup<StuckObject> stuckObjectLookup;
         [ReadOnly] public long maxTraversalCount;
         [ReadOnly] public byte minStuckSpeed;
         [ReadOnly] public bool deadlocksOnly;
@@ -45,27 +44,33 @@ namespace NoTrafficDespawn
             NativeArray<AnimalCurrentLane> nativeArray8 = chunk.GetNativeArray(ref m_AnimalCurrentLaneType);
 
             bool wasStuck = chunk.Has<StuckObject>();
+            bool hasCurrentVehicle = nativeArray4.Length != 0;
+            bool hasRideNeeder = nativeArray5.Length != 0;
+            bool hasGroupMember = nativeArray3.Length != 0;
+            bool hasTarget = nativeArray6.Length != 0;
+            bool hasPathOwner = nativeArray7.Length != 0;
+            bool hasAnimalLane = nativeArray8.Length != 0;
 
             for (int i = 0; i < nativeArray2.Length; i++)
             {
+                Entity entity = nativeArray[i];
                 Blocker blocker = nativeArray2[i];
                 if (!(blocker.m_Blocker != Entity.Null) || blocker.m_MaxSpeed >= this.minStuckSpeed)
                 {
                     if (wasStuck)
                     {
-                        this.commandBuffer.RemoveComponent<StuckObject>(unfilteredChunkIndex, nativeArray[i]);
+                        this.commandBuffer.RemoveComponent<StuckObject>(unfilteredChunkIndex, entity);
                     }
 
                     continue;
                 }
 
-                Entity entity = nativeArray[i];
                 Entity entity2 = Entity.Null;
-                if (nativeArray4.Length != 0)
+                if (hasCurrentVehicle)
                 {
                     entity2 = nativeArray4[i].m_Vehicle;
                 }
-                else if (nativeArray5.Length != 0)
+                else if (hasRideNeeder)
                 {
                     RideNeeder rideNeeder = nativeArray5[i];
                     if (m_DispatchedData.TryGetComponent(rideNeeder.m_RideRequest, out var componentData))
@@ -73,7 +78,7 @@ namespace NoTrafficDespawn
                         entity2 = componentData.m_Handler;
                     }
                 }
-                else if (nativeArray3.Length != 0)
+                else if (hasGroupMember)
                 {
                     GroupMember groupMember = nativeArray3[i];
                     if (m_CurrentVehicleData.TryGetComponent(groupMember.m_Leader, out var componentData2))
@@ -82,7 +87,7 @@ namespace NoTrafficDespawn
                     }
                 }
 
-                if (nativeArray6.Length != 0 && entity2 == Entity.Null)
+                if (hasTarget && entity2 == Entity.Null)
                 {
                     entity2 = nativeArray6[i].m_Target;
                 }
@@ -106,27 +111,24 @@ namespace NoTrafficDespawn
                 {
                     if (wasStuck)
                     {
-                        this.commandBuffer.RemoveComponent<StuckObject>(unfilteredChunkIndex, nativeArray[i]);
+                        this.commandBuffer.RemoveComponent<StuckObject>(unfilteredChunkIndex, entity);
                     }
 
                     continue;
                 }
 
-                if (nativeArray7.Length != 0)
+                if (hasPathOwner)
                 {
                     PathOwner value = nativeArray7[i];
                     if ((value.m_State & PathFlags.Pending) == 0)
                     {
-                        if (entity != Entity.Null)
+                        if (!wasStuck)
                         {
-                            if (!wasStuck)
-                            {
-                                this.commandBuffer.AddComponent(unfilteredChunkIndex, entity, new StuckObject(0));
-                            }
+                            this.commandBuffer.AddComponent(unfilteredChunkIndex, entity, new StuckObject(0));
                         }
                     }
                 }
-                else if (nativeArray8.Length != 0)
+                else if (hasAnimalLane)
                 {
                     AnimalCurrentLane value2 = nativeArray8[i];
                     value2.m_Flags |= CreatureLaneFlags.Stuck;
@@ -152,16 +154,11 @@ namespace NoTrafficDespawn
 
                 if (++num >= this.maxTraversalCount)
                 {
-                    return !this.deadlocksOnly;
+                    return true;
                 }
 
                 blocker = m_BlockerData[blocker.m_Blocker];
-                if (blocker.m_Blocker == Entity.Null)
-                {
-                    return false;
-                }
-
-                if (blocker.m_MaxSpeed >= this.minStuckSpeed)
+                if (blocker.m_Blocker == Entity.Null || blocker.m_MaxSpeed >= this.minStuckSpeed)
                 {
                     return false;
                 }
@@ -192,7 +189,7 @@ namespace NoTrafficDespawn
 
                 if (++num >= this.maxTraversalCount)
                 {
-                    return !this.deadlocksOnly;
+                    return true;
                 }
 
                 blocker = m_BlockerData[blocker.m_Blocker];
