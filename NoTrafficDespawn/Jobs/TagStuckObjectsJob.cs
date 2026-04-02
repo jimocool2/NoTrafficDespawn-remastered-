@@ -15,6 +15,7 @@ namespace NoTrafficDespawn
     {
         public EntityCommandBuffer.ParallelWriter commandBuffer;
 
+        [ReadOnly] public bool highlightObjects;
         [ReadOnly] public EntityTypeHandle m_EntityType;
         [ReadOnly] public ComponentTypeHandle<Blocker> m_BlockerType;
         [ReadOnly] public ComponentTypeHandle<GroupMember> m_GroupMemberType;
@@ -25,7 +26,7 @@ namespace NoTrafficDespawn
         [ReadOnly] public ComponentLookup<Controller> m_ControllerData;
         [ReadOnly] public ComponentLookup<CurrentVehicle> m_CurrentVehicleData;
         [ReadOnly] public ComponentLookup<Dispatched> m_DispatchedData;
-        [ReadOnly] public long maxTraversalCount;
+        [ReadOnly] public int maxTraversalCount;
         [ReadOnly] public byte minStuckSpeed;
         [ReadOnly] public bool deadlocksOnly;
 
@@ -61,7 +62,8 @@ namespace NoTrafficDespawn
                     if (wasStuck)
                     {
                         this.commandBuffer.RemoveComponent<StuckObject>(unfilteredChunkIndex, entity);
-                        this.commandBuffer.AddComponent<UnstuckObject>(unfilteredChunkIndex, entity);
+                        if (this.highlightObjects)
+                            this.commandBuffer.AddComponent<UnstuckObject>(unfilteredChunkIndex, entity);
                     }
 
                     continue;
@@ -162,7 +164,7 @@ namespace NoTrafficDespawn
 
                 if (++num >= this.maxTraversalCount)
                 {
-                    return true;
+                    return !this.deadlocksOnly;
                 }
 
                 blocker = m_BlockerData[blocker.m_Blocker];
@@ -197,7 +199,7 @@ namespace NoTrafficDespawn
 
                 if (++num >= this.maxTraversalCount)
                 {
-                    return true;
+                    return !this.deadlocksOnly;
                 }
 
                 blocker = m_BlockerData[blocker.m_Blocker];

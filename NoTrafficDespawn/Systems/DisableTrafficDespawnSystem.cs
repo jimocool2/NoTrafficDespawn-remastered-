@@ -84,6 +84,8 @@ namespace NoTrafficDespawn
                     ComponentType.ReadOnly<UnstuckObject>(),
                 }
             });
+
+            RequireForUpdate(this.stuckObjectQuery);
         }
 
         protected override void OnUpdate()
