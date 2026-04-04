@@ -30,6 +30,7 @@ namespace NoTrafficDespawn
 
         public DespawnBehavior despawnBehavior;
         public bool highlightStuckObjects;
+        public bool isDespawnFrame;
         public bool despawnAll;
         public bool despawnCommercialVehicles;
         public bool despawnPedestrians;
@@ -45,11 +46,16 @@ namespace NoTrafficDespawn
             NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
             NativeArray<StuckObject> stuckObjects = chunk.GetNativeArray(ref m_StuckObjectType);
 
+            bool canDespawn = despawnBehavior != DespawnBehavior.NoDespawn;
+
+            NativeBitArray handledIndices = new NativeBitArray(entities.Length, Allocator.Temp);
+            NativeList<int> candidates = new NativeList<int>(Allocator.Temp);
+
             for (int i = 0; i < entities.Length; i++)
             {
                 Entity entity = entities[i];
 
-                // No longer blocked — clean it up
+                // Entity is no longer blocked — remove stuck state and move on.
                 if (!m_BlockerData.HasComponent(entity))
                 {
                     commandBuffer.RemoveComponent<StuckObject>(entity);
@@ -59,36 +65,67 @@ namespace NoTrafficDespawn
                         commandBuffer.AddComponent<BatchesUpdated>(entity);
                     }
                     commandBuffer.AddComponent<Updated>(entity);
+
+                    // Mark so the highlight pass does not touch this index.
+                    handledIndices.Set(i, true);
                     continue;
                 }
 
+                if (!canDespawn)
+                    continue; // NoDespawn mode: only highlighting is done (pass 3).
+
+                // Increment and write back so the comparer sees the updated value.
                 StuckObject stuck = stuckObjects[i];
+                stuck.frameCount += 4;
+                stuckObjects[i] = stuck;
 
-                if (despawnBehavior != DespawnBehavior.NoDespawn)
+                // Only bother collecting candidates on frames where we will actually despawn.
+                if (isDespawnFrame &&
+                    stuck.frameCount >= deadlockLingerFrames &&
+                    availableRemovalCount.Value > 0 &&
+                    ShouldDespawn(entity) &&
+                    m_PathOwnerData.HasComponent(entity))
                 {
-                    stuck.frameCount += 4;
-
-                    if (stuck.frameCount >= deadlockLingerFrames && availableRemovalCount.Value > 0 && ShouldDespawn(entity))
-                    {
-                        if (m_PathOwnerData.TryGetComponent(entity, out PathOwner pathOwner))
-                        {
-                            pathOwner.m_State |= PathFlags.Stuck;
-                            m_PathOwnerData[entity] = pathOwner;
-                            commandBuffer.AddComponent<Updated>(entity);
-                            availableRemovalCount.Value--;
-                            continue; // being despawned, skip highlight update
-                        }
-                    }
-
-                    stuckObjects[i] = stuck;
-                }
-
-                if (highlightStuckObjects)
-                {
-                    commandBuffer.AddComponent<Highlighted>(entity);
-                    commandBuffer.AddComponent<BatchesUpdated>(entity);
+                    candidates.Add(i);
                 }
             }
+
+            if (isDespawnFrame && candidates.Length > 0)
+            {
+                candidates.Sort(new FrameCountDescendingComparer { stuckObjects = stuckObjects });
+
+                for (int j = 0; j < candidates.Length; j++)
+                {
+                    if (availableRemovalCount.Value <= 0)
+                        break;
+
+                    int i = candidates[j];
+                    Entity entity = entities[i];
+
+                    PathOwner pathOwner = m_PathOwnerData[entity];
+                    pathOwner.m_State |= PathFlags.Stuck;
+                    m_PathOwnerData[entity] = pathOwner;
+                    commandBuffer.AddComponent<Updated>(entity);
+
+                    availableRemovalCount.Value--;
+                    handledIndices.Set(i, true); // skip highlight for this entity
+                }
+            }
+
+            if (highlightStuckObjects)
+            {
+                for (int i = 0; i < entities.Length; i++)
+                {
+                    if (!handledIndices.IsSet(i))
+                    {
+                        commandBuffer.AddComponent<Highlighted>(entities[i]);
+                        commandBuffer.AddComponent<BatchesUpdated>(entities[i]);
+                    }
+                }
+            }
+
+            candidates.Dispose();
+            handledIndices.Dispose();
         }
 
         private bool ShouldDespawn(Entity entity)
@@ -115,8 +152,8 @@ namespace NoTrafficDespawn
                 !isPersonalCar &&
                 !isBicycle &&
                 !isTaxi &&
-                !isPassengerTransport
-                ) return true;
+                !isPassengerTransport)
+                return true;
 
             return false;
         }

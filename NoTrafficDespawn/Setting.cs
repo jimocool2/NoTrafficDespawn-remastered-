@@ -26,6 +26,7 @@ namespace NoTrafficDespawn
             this.deadlockSearchDepth = 100;
             this.maxStuckObjectRemovalCount = 1;
             this.maxStuckObjectSpeed = 3;
+            this.despawnIntervalTicks = 1;
             this.despawnAll = true;
             this.despawnCommercialVehicles = true;
             this.despawnPedestrians = true;
@@ -68,6 +69,11 @@ namespace NoTrafficDespawn
         [SettingsUISection(kSection, kToggleGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnOptions))]
         public int maxStuckObjectSpeed { get; set; }
+
+        [SettingsUISlider(min = 1, max = 200, step = 1, scalarMultiplier = 1, unit = Unit.kInteger)]
+        [SettingsUISection(kSection, kToggleGroup)]
+        [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnOptions))]
+        public int despawnIntervalTicks { get; set; }
 
         [SettingsUISection(kSection, despawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableAllDespawnOption))]
@@ -112,6 +118,7 @@ namespace NoTrafficDespawn
             this.deadlockSearchDepth = 100;
             this.maxStuckObjectRemovalCount = 1;
             this.maxStuckObjectSpeed = 3;
+            this.despawnIntervalTicks = 1;
             this.despawnAll = true;
             this.despawnCommercialVehicles = true;
             this.despawnPedestrians = true;
@@ -170,11 +177,14 @@ namespace NoTrafficDespawn
                 { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.deadlockSearchDepth)), "Vehicle Chain Search Depth" },
                 { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.deadlockSearchDepth)), "The number of vehicles the simulation will traverse to find a circular loop. Reaching the limit with 'despawn explicit deadlocks only' set will do nothing, otherwise the vehicle will be marked as stuck." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectRemovalCount)), "Max Per-frame Stuck Vehicle Removal Count" },
-                { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectRemovalCount)), "The maximum number of stuck vehicles the game will move per frame. Decreasing this value increases the chance the simulation will recover from deadlocks on its own with fewer vehicles removed." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectRemovalCount)), "Max Per-pass Stuck Vehicle Removal Count" },
+                { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectRemovalCount)), "The maximum number of stuck vehicles removed per despawn pass. Decreasing this value increases the chance the simulation will recover from deadlocks on its own with fewer vehicles removed." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectSpeed)), "Max Stuck Vehicle Speed" },
                 { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.maxStuckObjectSpeed)), "The maximum speed at which the game will consider an object in a blocking path to be fast enough to not cause upstream traffic to be stuck." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.despawnIntervalTicks)), "Despawn Interval (Updates)" },
+                { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.despawnIntervalTicks)), "How many system updates must pass between despawn passes. 1 = despawn every update (original behaviour). Each update is roughly 4 simulation frames. Increasing this gives the simulation more time to self-recover between passes, at the cost of slower deadlock resolution." },
 
                 { m_Setting.GetOptionGroupLocaleID(TrafficDespawnSettings.despawnTypeGroup), "Despawn Object Types" },
 

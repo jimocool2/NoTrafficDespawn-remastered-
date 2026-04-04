@@ -41,6 +41,10 @@ namespace NoTrafficDespawn
 
         private bool shouldDisable;
 
+        private int despawnIntervalTicks;
+        private int m_TicksSinceLastDespawn;
+
+
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 4;
@@ -128,6 +132,11 @@ namespace NoTrafficDespawn
                 highlightDirty = false;
             }
 
+            m_TicksSinceLastDespawn++;
+            bool isDespawnFrame = m_TicksSinceLastDespawn >= despawnIntervalTicks;
+            if (isDespawnFrame)
+                m_TicksSinceLastDespawn = 0;
+
             // --- Job: process stuck entities ---
             NativeReference<int> removalCount = new NativeReference<int>(
                 this.maxStuckObjectRemovalCount, Allocator.TempJob);
@@ -150,6 +159,7 @@ namespace NoTrafficDespawn
                 availableRemovalCount = removalCount,
                 despawnBehavior = this.despawnBehavior,
                 highlightStuckObjects = this.highlightStuckObjects,
+                isDespawnFrame = isDespawnFrame,
                 despawnAll = this.despawnAll,
                 despawnCommercialVehicles = this.despawnCommercialVehicles,
                 despawnPedestrians = this.despawnPedestrians,
@@ -198,6 +208,13 @@ namespace NoTrafficDespawn
             this.deadlockSearchDepth = settings.deadlockSearchDepth;
             this.maxStuckObjectRemovalCount = settings.maxStuckObjectRemovalCount;
             this.maxStuckObjectSpeed = settings.maxStuckObjectSpeed;
+
+            // Clamp to at least 1 so the counter always eventually fires.
+            this.despawnIntervalTicks = settings.despawnIntervalTicks < 1 ? 1 : settings.despawnIntervalTicks;
+            // Reset the counter when settings change so the new interval takes
+            // effect immediately rather than carrying over a stale count.
+            this.m_TicksSinceLastDespawn = 0;
+
             if (this.wasHighlighting && !this.highlightStuckObjects)
             {
                 this.highlightDirty = true;

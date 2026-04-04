@@ -66,14 +66,10 @@ namespace NoTrafficDespawn
                 try
                 {
                     EntityCommandBuffer commandBuffer = this.entityCommandBufferSystem.CreateCommandBuffer();
-                    //Mod.log.Info($"{nameof(ParkedTransitDespawnSystem)}: selectedSpeed={this.simulationSystem.selectedSpeed}, " +
-                    //             $"despawnBehavior={this.disableTrafficDespawnSystem.despawnBehavior}, " +
-                    //             $"parkedTransitCount={parkedTransitEntities.Length}");
 
                     for (int i = 0; i < parkedTransitEntities.Length; i++)
                     {
                         Entity entity = parkedTransitEntities[i];
-                        //Mod.log.Info($"{nameof(ParkedTransitDespawnSystem)}: marking Deleted for parked transit entity {entity.Index}:{entity.Version}");
                         commandBuffer.AddComponent<Deleted>(entity);
                         commandBuffer.AddComponent<BatchesUpdated>(entity);
                     }
