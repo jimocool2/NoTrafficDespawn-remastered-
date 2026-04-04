@@ -26,6 +26,7 @@ namespace NoTrafficDespawn
         private bool despawnPedestrians;
         private bool despawnPersonalVehicles;
         private bool despawnPublicTransit;
+        private bool despawnBicycles;
         private bool despawnServiceVehicles;
         private bool despawnTaxis;
 
@@ -142,6 +143,7 @@ namespace NoTrafficDespawn
                 m_CreatureData = SystemAPI.GetComponentLookup<Creature>(isReadOnly: true),
                 m_PersonalCarData = SystemAPI.GetComponentLookup<PersonalCar>(isReadOnly: true),
                 m_PassengerTransportData = SystemAPI.GetComponentLookup<PassengerTransport>(isReadOnly: true),
+                m_BicycleData = SystemAPI.GetComponentLookup<Bicycle>(isReadOnly: true),
                 m_TaxiData = SystemAPI.GetComponentLookup<Taxi>(isReadOnly: true),
                 m_PathOwnerData = SystemAPI.GetComponentLookup<PathOwner>(isReadOnly: false),
                 commandBuffer = commandBuffer,
@@ -153,6 +155,7 @@ namespace NoTrafficDespawn
                 despawnPedestrians = this.despawnPedestrians,
                 despawnPersonalVehicles = this.despawnPersonalVehicles,
                 despawnPublicTransit = this.despawnPublicTransit,
+                despawnBicycles = this.despawnBicycles,
                 despawnServiceVehicles = this.despawnServiceVehicles,
                 despawnTaxis = this.despawnTaxis,
                 deadlockLingerFrames = this.deadlockLingerFrames,
@@ -207,6 +210,7 @@ namespace NoTrafficDespawn
             this.despawnPedestrians = settings.despawnPedestrians;
             this.despawnPersonalVehicles = settings.despawnPersonalVehicles;
             this.despawnPublicTransit = settings.despawnPublicTransit;
+            this.despawnBicycles = settings.despawnBicycles;
             this.despawnServiceVehicles = settings.despawnServiceVehicles;
             this.despawnTaxis = settings.despawnTaxis;
         }

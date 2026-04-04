@@ -31,6 +31,7 @@ namespace NoTrafficDespawn
             this.despawnPedestrians = true;
             this.despawnPersonalVehicles = true;
             this.despawnPublicTransit = true;
+            this.despawnBicycles = true;
             this.despawnServiceVehicles = true;
             this.despawnTaxis = true;
         }
@@ -90,6 +91,10 @@ namespace NoTrafficDespawn
 
         [SettingsUISection(kSection, despawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
+        public bool despawnBicycles { get; set; }
+
+        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnServiceVehicles { get; set; }
 
         [SettingsUISection(kSection, despawnTypeGroup)]
@@ -112,6 +117,7 @@ namespace NoTrafficDespawn
             this.despawnPedestrians = true;
             this.despawnPersonalVehicles = true;
             this.despawnPublicTransit = true;
+            this.despawnBicycles = true;
             this.despawnServiceVehicles = true;
             this.despawnTaxis = true;
         }
@@ -192,6 +198,9 @@ namespace NoTrafficDespawn
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.despawnPublicTransit)), "Public Transit" },
                 { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.despawnPublicTransit)), "Despawn stuck public transit vehicles (buses, trams, trains, etc)." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.despawnBicycles)), "Bicycles" },
+                { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.despawnBicycles)), "Despawn stuck bicycles." },
             };
         }
 

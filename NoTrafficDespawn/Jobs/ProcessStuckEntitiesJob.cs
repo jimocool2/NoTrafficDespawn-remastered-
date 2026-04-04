@@ -21,6 +21,7 @@ namespace NoTrafficDespawn
         [ReadOnly] public ComponentLookup<Creature> m_CreatureData;
         [ReadOnly] public ComponentLookup<PersonalCar> m_PersonalCarData;
         [ReadOnly] public ComponentLookup<PassengerTransport> m_PassengerTransportData;
+        [ReadOnly] public ComponentLookup<Bicycle> m_BicycleData;
         [ReadOnly] public ComponentLookup<Taxi> m_TaxiData;
         public ComponentLookup<PathOwner> m_PathOwnerData;
 
@@ -34,6 +35,7 @@ namespace NoTrafficDespawn
         public bool despawnPedestrians;
         public bool despawnPersonalVehicles;
         public bool despawnPublicTransit;
+        public bool despawnBicycles;
         public bool despawnServiceVehicles;
         public bool despawnTaxis;
         public int deadlockLingerFrames;
@@ -92,17 +94,30 @@ namespace NoTrafficDespawn
         private bool ShouldDespawn(Entity entity)
         {
             if (despawnAll) return true;
-            if (despawnCommercialVehicles && m_DeliveryTruckData.HasComponent(entity)) return true;
-            if (despawnPedestrians && m_CreatureData.HasComponent(entity)) return true;
-            if (despawnPersonalVehicles && m_PersonalCarData.HasComponent(entity)) return true;
-            if (despawnPublicTransit && m_PassengerTransportData.HasComponent(entity)) return true;
-            if (despawnTaxis && m_TaxiData.HasComponent(entity)) return true;
+
+            bool isCreature = m_CreatureData.HasComponent(entity);
+            bool isPersonalCar = m_PersonalCarData.HasComponent(entity);
+            bool isTaxi = m_TaxiData.HasComponent(entity);
+            bool isDeliveryTruck = m_DeliveryTruckData.HasComponent(entity);
+            bool isPassengerTransport = m_PassengerTransportData.HasComponent(entity);
+            bool isBicycle = m_BicycleData.HasComponent(entity);
+
+            if (despawnPedestrians && isCreature) return true;
+            if (despawnCommercialVehicles && isDeliveryTruck) return true;
+            if (despawnPersonalVehicles && isPersonalCar) return true;
+            if (despawnBicycles && isBicycle) return true;
+            if (despawnTaxis && isTaxi) return true;
+            if (despawnPublicTransit && isPassengerTransport) return true;
+
             if (despawnServiceVehicles &&
-                !m_CreatureData.HasComponent(entity) &&
-                !m_PersonalCarData.HasComponent(entity) &&
-                !m_TaxiData.HasComponent(entity) &&
-                !m_DeliveryTruckData.HasComponent(entity) &&
-                !m_PassengerTransportData.HasComponent(entity)) return true;
+                !isCreature &&
+                !isDeliveryTruck &&
+                !isPersonalCar &&
+                !isBicycle &&
+                !isTaxi &&
+                !isPassengerTransport
+                ) return true;
+
             return false;
         }
     }
