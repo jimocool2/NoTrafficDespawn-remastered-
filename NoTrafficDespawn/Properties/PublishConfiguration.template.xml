@@ -8,8 +8,8 @@
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
-		This mod is a modified version of the mod NoTrafficDespawn by mattswarthout. This mod prevents vehicles from despawning when a pathing issue occurs. This mod is off by default and you must toggle the option to disable respawns in the options menu "No Traffic Despawn". 
-		This setting is global and works for both cars and public transit (including trains). Future versions will hopefully add the option to select which type of vehicles are subject to despawning. Use this mod at your own risk; 
+		This mod is a modified version of the mod NoTrafficDespawn by mattswarthout. This mod prevents vehicles from despawning when a pathing issue occurs. This mod is off by default and you must toggle the option to disable respawns in the options menu "No Traffic Despawn".
+		This setting is global and works for both cars and public transit (including trains). Future versions will hopefully add the option to select which type of vehicles are subject to despawning. Use this mod at your own risk;
 		pathing issues occur frequently and it is necessary to manually look for deadlocks when despawning is disabled. If a deadlock is noticed, you can temporarily untoggle the mod in the settings menu and all deadlocks will immediately be cleared.
 	</LongDescription>
 	<!--Thumbnail-->
@@ -17,20 +17,21 @@
 	<!--Screenshot, can be set multiple times-->
 	<Screenshot Value="" />
 	<!--Tag, can be set multiple times-->
+	<Tag Value="Code Mod" />
+	<Tag Value="Remastered" />
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
 	<ModVersion Value="1.0.0" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.0.*" />
+	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
+	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
-	<!--<ChangeLog>
-	</ChangeLog>-->
+	<ChangeLog> </ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="github" Url="https://github.com/jimocool2/NoTrafficDespawn-remastered-" />
+	<ExternalLink Type="github" Url="https://github.com/jimocool2/NoTrafficDespawn-remastered" />
 	<!--Supported values Public, Private, Unlisted-->
 	<AccessLevel Value="Unlisted" />
 </Publish>

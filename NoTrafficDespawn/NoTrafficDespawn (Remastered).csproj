@@ -1,10 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
 		<Configurations>Debug;Release</Configurations>
-	
-		<!--The file where mod information which is required for publishing mod on PDX mods are stored-->
+		<Title>NoTrafficDespawn (Remastered)</Title>
+		<AssemblyTitle>$(Title)</AssemblyTitle>
+		<Description>A Cities Skylines 2 mod.</Description>
+		<Product>$(Title)</Product>
+		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<Version>1.0.0</Version>
+		<AssemblyVersion>$(Version).0</AssemblyVersion>
+		<FileVersion>$(Version).0</FileVersion>
 	</PropertyGroup>
 	
 	<!--Imports must be after PropertyGroup block-->
@@ -79,6 +89,40 @@
 		<None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
 		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\Changelog\" />
+	</ItemGroup>
+
+	<!-- Disable Burst compiler for Mac/Linux -->
+	<Target Name="CustomModPostProcessorConfig" AfterTargets="ModPostProcessorConfig">
+		<PropertyGroup>
+			<ModPostProcessorArgs>"$(ModPostProcessorFullPath)" PostProcess "$(TargetPath)" -u "$(UnityModProjectFullPath)" @(ReferencePath->'-r "%(Identity)"', ' ') -p Windows -d -v</ModPostProcessorArgs>
+		</PropertyGroup>
+	</Target>
+
+	<!-- Custom Build step to assemble the PublishConfiguration.xml -->
+	<Target Name="GeneratePublishConfiguration" AfterTargets="ModPublisherConfig">
+		<PropertyGroup>
+			<TargetConfigXml>$(ProjectDir)Properties\PublishConfiguration.xml</TargetConfigXml>
+			<ModVersion>$(Version)</ModVersion>
+			<LongDescFile>$(ProjectDir)Properties\LongDescription.md</LongDescFile>
+			<ChangelogFile>$(ProjectDir)Properties\Changelog\$(ModVersion).md</ChangelogFile>
+		</PropertyGroup>
+
+		<PropertyGroup>
+			<LongDescText Condition="Exists('$(LongDescFile)')">$([System.IO.File]::ReadAllText('$(LongDescFile)'))</LongDescText>
+			<ChangelogText Condition="Exists('$(ChangelogFile)')">$([System.IO.File]::ReadAllText('$(ChangelogFile)'))</ChangelogText>
+		</PropertyGroup>
+
+		<Copy SourceFiles="$(ProjectDir)Properties/PublishConfiguration.template.xml" DestinationFiles="$(TargetConfigXml)" />
+
+		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/ModVersion/@Value" Value="$(ModVersion)" />
+		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/LongDescription/text()" Value="$(LongDescText)" />
+		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/ChangeLog/text()" Value="$(ChangelogText)" />
+
+		<Message Text="Updated $(TargetConfigXml) with Version $(ModVersion)" Importance="High" />
+	</Target>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 	  <Exec Command="mkdir &quot;C:\Users\Jure\AppData\LocalLow\Colossal Order\Cities Skylines II\Mods\$(ProjectName)&quot;&#xD;&#xA;xcopy /Y /E &quot;$(TargetDir)*.*&quot; &quot;C:\Users\Jure\AppData\LocalLow\Colossal Order\Cities Skylines II\Mods\$(ProjectName)\&quot;" />

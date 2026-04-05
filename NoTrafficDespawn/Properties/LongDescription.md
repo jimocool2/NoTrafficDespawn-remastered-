@@ -1,0 +1,3 @@
+This mod is a modified version of the mod NoTrafficDespawn by mattswarthout. This mod prevents vehicles from despawning when a pathing issue occurs. This mod is off by default and you must toggle the option to disable respawns in the options menu. 
+This setting is global and works for both cars and public transit (including trains). Future versions will hopefully add the option to select which type of vehicles are subject to despawning. Use this mod at your own risk - pathing issues occur 
+frequently and it is necessary to manually look for deadlocks when despawning is disabled. If a deadlock is noticed, you can temporarily untoggle the mod in the settings menu and all deadlocks will immediately be cleared.
