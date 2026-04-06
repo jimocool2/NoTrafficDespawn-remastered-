@@ -130,8 +130,8 @@
 		<Copy SourceFiles="$(ProjectDir)Properties/PublishConfiguration.template.xml" DestinationFiles="$(TargetConfigXml)" />
 
 		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/ModVersion/@Value" Value="$(ModVersion)" />
-		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/LongDescription/text()" Value="$(LongDescText)" />
-		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/ChangeLog/text()" Value="$(ChangelogText)" />
+		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/LongDescription" Value="$(LongDescText)" />
+		<XmlPoke XmlInputPath="$(TargetConfigXml)" Query="/Publish/ChangeLog" Value="$(ChangelogText)" />
 
 		<Message Text="Updated $(TargetConfigXml) with Version $(ModVersion)" Importance="High" />
 	</Target>
