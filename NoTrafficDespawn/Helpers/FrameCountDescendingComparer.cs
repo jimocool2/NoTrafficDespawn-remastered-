@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using NoTrafficDespawn.Components;
+using System.Collections.Generic;
 using Unity.Collections;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Helpers
 {
     /// <summary>
     /// Sorts chunk indices descending by <see cref="StuckObject.frameCount"/> so that
@@ -16,7 +17,7 @@ namespace NoTrafficDespawn
         public int Compare(int x, int y)
         {
             // Descending: larger frameCount (stuck longer) comes first.
-            return stuckObjects[y].frameCount.CompareTo(stuckObjects[x].frameCount);
+            return stuckObjects[y].FrameCount.CompareTo(stuckObjects[x].FrameCount);
         }
     }
 }

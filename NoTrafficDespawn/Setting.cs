@@ -8,15 +8,13 @@ using System.Collections.Generic;
 namespace NoTrafficDespawn
 {
     [FileLocation(nameof(NoTrafficDespawn))]
-    [SettingsUIGroupOrder(kToggleGroup, despawnTypeGroup)]
-    [SettingsUIShowGroupName(despawnTypeGroup)]
+    [SettingsUIGroupOrder(kToggleGroup, DespawnTypeGroup)]
+    [SettingsUIShowGroupName(DespawnTypeGroup)]
     public class TrafficDespawnSettings : ModSetting
     {
         public const string kSection = "Main";
-
         public const string kToggleGroup = "Toggle";
-
-        public const string despawnTypeGroup = "DespawnTypes";
+        public const string DespawnTypeGroup = "DespawnTypes";
 
         public TrafficDespawnSettings(IMod mod) : base(mod)
         {
@@ -75,35 +73,35 @@ namespace NoTrafficDespawn
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnOptions))]
         public int despawnIntervalTicks { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableAllDespawnOption))]
         public bool despawnAll { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnCommercialVehicles { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnPedestrians { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnPersonalVehicles { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnPublicTransit { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnBicycles { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnServiceVehicles { get; set; }
 
-        [SettingsUISection(kSection, despawnTypeGroup)]
+        [SettingsUISection(kSection, DespawnTypeGroup)]
         [SettingsUIDisableByCondition(typeof(TrafficDespawnSettings), nameof(disableDespawnTypeOptions))]
         public bool despawnTaxis { get; set; }
 
@@ -141,6 +139,7 @@ namespace NoTrafficDespawn
     public class LocaleEN : IDictionarySource
     {
         private readonly TrafficDespawnSettings m_Setting;
+
         public LocaleEN(TrafficDespawnSettings setting)
         {
             m_Setting = setting;
@@ -186,7 +185,7 @@ namespace NoTrafficDespawn
                 { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.despawnIntervalTicks)), "Despawn Interval (Updates)" },
                 { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.despawnIntervalTicks)), "How many system updates must pass between despawn passes. 1 = despawn every update (original behaviour). Each update is roughly 4 simulation frames. Increasing this gives the simulation more time to self-recover between passes, at the cost of slower deadlock resolution." },
 
-                { m_Setting.GetOptionGroupLocaleID(TrafficDespawnSettings.despawnTypeGroup), "Despawn Object Types" },
+                { m_Setting.GetOptionGroupLocaleID(TrafficDespawnSettings.DespawnTypeGroup), "Despawn Object Types" },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(TrafficDespawnSettings.despawnAll)), "All" },
                 { m_Setting.GetOptionDescLocaleID(nameof(TrafficDespawnSettings.despawnAll)), "Despawn stuck objects of any type." },

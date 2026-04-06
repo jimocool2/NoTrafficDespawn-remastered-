@@ -5,15 +5,16 @@ using Game.Pathfind;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using NoTrafficDespawn.Jobs;
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Systems
 {
     public partial class NewStuckMovingObjectSystem : GameSystemBase
     {
-        private EntityQuery blockedEntityQuery;
-        private EntityCommandBufferSystem entityCommandBufferSystem;
-        private DisableTrafficDespawnSystem disableTrafficDespawnSystem;
+        private EntityQuery m_BlockedEntityQuery;
+        private EntityCommandBufferSystem m_EntityCommandBufferSystem;
+        private DisableTrafficDespawnSystem m_DisableTrafficDespawnSystem;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -23,16 +24,16 @@ namespace NoTrafficDespawn
         protected override void OnCreate()
         {
             base.OnCreate();
-            this.entityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
-            this.disableTrafficDespawnSystem = World.GetOrCreateSystemManaged<DisableTrafficDespawnSystem>();
-            blockedEntityQuery = GetEntityQuery(ComponentType.ReadOnly<Blocker>(), ComponentType.ReadOnly<UpdateFrame>(), ComponentType.Exclude<Deleted>(), ComponentType.Exclude<Temp>());
-            RequireForUpdate(blockedEntityQuery);
+            this.m_EntityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
+            this.m_DisableTrafficDespawnSystem = World.GetOrCreateSystemManaged<DisableTrafficDespawnSystem>();
+            m_BlockedEntityQuery = GetEntityQuery(ComponentType.ReadOnly<Blocker>(), ComponentType.ReadOnly<UpdateFrame>(), ComponentType.Exclude<Deleted>(), ComponentType.Exclude<Temp>());
+            RequireForUpdate(m_BlockedEntityQuery);
         }
 
         protected override void OnUpdate()
         {
             TagStuckObjectsJob stuckCheckJob = default;
-            stuckCheckJob.highlightObjects = this.disableTrafficDespawnSystem.highlightStuckObjects;
+            stuckCheckJob.highlightObjects = this.m_DisableTrafficDespawnSystem.highlightStuckObjects;
             stuckCheckJob.m_EntityType = SystemAPI.GetEntityTypeHandle();
             stuckCheckJob.m_BlockerType = SystemAPI.GetComponentTypeHandle<Blocker>(isReadOnly: true);
             stuckCheckJob.m_GroupMemberType = SystemAPI.GetComponentTypeHandle<GroupMember>(isReadOnly: true);
@@ -45,14 +46,14 @@ namespace NoTrafficDespawn
             stuckCheckJob.m_DispatchedData = SystemAPI.GetComponentLookup<Dispatched>(isReadOnly: true);
             stuckCheckJob.m_PathOwnerType = SystemAPI.GetComponentTypeHandle<PathOwner>();
             stuckCheckJob.m_AnimalCurrentLaneType = SystemAPI.GetComponentTypeHandle<AnimalCurrentLane>();
-            stuckCheckJob.minStuckSpeed = (byte)this.disableTrafficDespawnSystem.maxStuckObjectSpeed;
-            stuckCheckJob.maxTraversalCount = this.disableTrafficDespawnSystem.deadlockSearchDepth;
-            stuckCheckJob.deadlocksOnly = this.disableTrafficDespawnSystem.despawnBehavior == DespawnBehavior.DespawnDeadlocksOnly;
-            stuckCheckJob.commandBuffer = this.entityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+            stuckCheckJob.minStuckSpeed = (byte)this.m_DisableTrafficDespawnSystem.maxStuckObjectSpeed;
+            stuckCheckJob.maxTraversalCount = this.m_DisableTrafficDespawnSystem.deadlockSearchDepth;
+            stuckCheckJob.deadlocksOnly = this.m_DisableTrafficDespawnSystem.despawnBehavior == DespawnBehavior.DespawnDeadlocksOnly;
+            stuckCheckJob.commandBuffer = this.m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
 
-            base.Dependency = JobChunkExtensions.ScheduleParallel(stuckCheckJob, blockedEntityQuery, base.Dependency);
+            base.Dependency = JobChunkExtensions.ScheduleParallel(stuckCheckJob, m_BlockedEntityQuery, base.Dependency);
 
-            this.entityCommandBufferSystem.AddJobHandleForProducer(base.Dependency);
+            this.m_EntityCommandBufferSystem.AddJobHandleForProducer(base.Dependency);
         }
     }
 }

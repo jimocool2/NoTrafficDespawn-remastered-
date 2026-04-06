@@ -3,12 +3,14 @@ using Game.Creatures;
 using Game.Pathfind;
 using Game.Tools;
 using Game.Vehicles;
+using NoTrafficDespawn.Components;
+using NoTrafficDespawn.Helpers;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Jobs
 {
     [BurstCompile]
     public struct ProcessStuckEntitiesJob : IJobChunk
@@ -55,7 +57,6 @@ namespace NoTrafficDespawn
             {
                 Entity entity = entities[i];
 
-                // Entity is no longer blocked — remove stuck state and move on.
                 if (!m_BlockerData.HasComponent(entity))
                 {
                     commandBuffer.RemoveComponent<StuckObject>(entity);
@@ -66,22 +67,19 @@ namespace NoTrafficDespawn
                     }
                     commandBuffer.AddComponent<Updated>(entity);
 
-                    // Mark so the highlight pass does not touch this index.
                     handledIndices.Set(i, true);
                     continue;
                 }
 
                 if (!canDespawn)
-                    continue; // NoDespawn mode: only highlighting is done (pass 3).
+                    continue;
 
-                // Increment and write back so the comparer sees the updated value.
                 StuckObject stuck = stuckObjects[i];
-                stuck.frameCount += 4;
+                stuck.FrameCount += 4;
                 stuckObjects[i] = stuck;
 
-                // Only bother collecting candidates on frames where we will actually despawn.
                 if (isDespawnFrame &&
-                    stuck.frameCount >= deadlockLingerFrames &&
+                    stuck.FrameCount >= deadlockLingerFrames &&
                     availableRemovalCount.Value > 0 &&
                     ShouldDespawn(entity) &&
                     m_PathOwnerData.HasComponent(entity))
@@ -108,7 +106,7 @@ namespace NoTrafficDespawn
                     commandBuffer.AddComponent<Updated>(entity);
 
                     availableRemovalCount.Value--;
-                    handledIndices.Set(i, true); // skip highlight for this entity
+                    handledIndices.Set(i, true);
                 }
             }
 

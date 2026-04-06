@@ -5,19 +5,21 @@ using Game.Common;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using NoTrafficDespawn.Helpers;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Systems
 {
     public partial class ParkedTransitDespawnSystem : GameSystemBase
     {
-        private EntityQuery parkedTransitQuery;
-        private SimulationSystem simulationSystem;
-        private DisableTrafficDespawnSystem disableTrafficDespawnSystem;
-        private EntityCommandBufferSystem entityCommandBufferSystem;
+        private EntityQuery m_ParkedTransitQuery;
+        private SimulationSystem m_SimulationSystem;
+        private DisableTrafficDespawnSystem m_DisableTrafficDespawnSystem;
+        private EntityCommandBufferSystem m_EntityCommandBufferSystem;
+        private PrefixLogger m_Log;
 
-        private bool ShoulDespawnTransit => this.disableTrafficDespawnSystem.despawnBehavior != DespawnBehavior.NoDespawn || this.disableTrafficDespawnSystem.DespawnPublicTransit || this.disableTrafficDespawnSystem.DespawnAll;
+        private bool m_ShouldDespawnTransit => this.m_DisableTrafficDespawnSystem.despawnBehavior != DespawnBehavior.NoDespawn || this.m_DisableTrafficDespawnSystem.DespawnPublicTransit || this.m_DisableTrafficDespawnSystem.DespawnAll;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -27,11 +29,15 @@ namespace NoTrafficDespawn
         protected override void OnCreate()
         {
             base.OnCreate();
-            this.simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
-            this.disableTrafficDespawnSystem = World.GetOrCreateSystemManaged<DisableTrafficDespawnSystem>();
-            this.entityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
 
-            this.parkedTransitQuery = GetEntityQuery(new EntityQueryDesc
+            m_Log = new PrefixLogger(nameof(ParkedTransitDespawnSystem));
+            m_Log.Debug(nameof(OnCreate));
+
+            this.m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            this.m_DisableTrafficDespawnSystem = World.GetOrCreateSystemManaged<DisableTrafficDespawnSystem>();
+            this.m_EntityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
+
+            this.m_ParkedTransitQuery = GetEntityQuery(new EntityQueryDesc
             {
                 All = new ComponentType[]
                 {
@@ -50,22 +56,22 @@ namespace NoTrafficDespawn
                 }
             });
 
-            RequireForUpdate(this.parkedTransitQuery);
+            RequireForUpdate(this.m_ParkedTransitQuery);
         }
 
         protected override void OnUpdate()
         {
             try
             {
-                if (this.simulationSystem.selectedSpeed <= 0 || !this.ShoulDespawnTransit)
+                if (this.m_SimulationSystem.selectedSpeed <= 0 || !this.m_ShouldDespawnTransit)
                 {
                     return;
                 }
 
-                NativeArray<Entity> parkedTransitEntities = this.parkedTransitQuery.ToEntityArray(Allocator.Temp);
+                NativeArray<Entity> parkedTransitEntities = this.m_ParkedTransitQuery.ToEntityArray(Allocator.Temp);
                 try
                 {
-                    EntityCommandBuffer commandBuffer = this.entityCommandBufferSystem.CreateCommandBuffer();
+                    EntityCommandBuffer commandBuffer = this.m_EntityCommandBufferSystem.CreateCommandBuffer();
 
                     for (int i = 0; i < parkedTransitEntities.Length; i++)
                     {
@@ -81,7 +87,7 @@ namespace NoTrafficDespawn
             }
             catch (Exception ex)
             {
-                Mod.log.Error($"{nameof(ParkedTransitDespawnSystem)} failed in OnUpdate: {ex}");
+                m_Log.Error($"Failed in OnUpdate: {ex}");
                 throw;
             }
         }

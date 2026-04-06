@@ -1,14 +1,14 @@
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Components
 {
-    public struct StuckObject : IComponentData, IQueryTypeParameter
+    public struct StuckObject : IComponentData
     {
-        public int frameCount;
+        public int FrameCount { get; set; }
 
         public StuckObject(int frameCount)
         {
-            this.frameCount = frameCount;
+            this.FrameCount = frameCount;
         }
     }
 }

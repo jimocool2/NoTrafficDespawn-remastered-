@@ -3,12 +3,13 @@ using Game.Creatures;
 using Game.Pathfind;
 using Game.Simulation;
 using Game.Vehicles;
+using NoTrafficDespawn.Components;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Jobs
 {
     [BurstCompile]
     public struct TagStuckObjectsJob : IJobChunk

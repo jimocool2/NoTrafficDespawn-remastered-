@@ -6,29 +6,31 @@ using Game.Pathfind;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using NoTrafficDespawn.Components;
+using NoTrafficDespawn.Jobs;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace NoTrafficDespawn
+namespace NoTrafficDespawn.Systems
 {
     public partial class DisableTrafficDespawnSystem : GameSystemBase
     {
-        private StuckMovingObjectSystem stuckMovingObjectSystem;
-        private SimulationSystem simulationSystem;
-        private EntityCommandBufferSystem entityCommandBufferSystem;
-        private EntityQuery stuckObjectQuery;
-        private EntityQuery unstuckObjectQuery;
+        private StuckMovingObjectSystem m_StuckMovingObjectSystem;
+        private SimulationSystem m_SimulationSystem;
+        private EntityCommandBufferSystem m_EntityCommandBufferSystem;
+        private EntityQuery m_StuckObjectQuery;
+        private EntityQuery m_UnstuckObjectQuery;
 
-        private bool highlightDirty;
-        private bool wasHighlighting;
-        private bool despawnAll;
-        private bool despawnCommercialVehicles;
-        private bool despawnPedestrians;
-        private bool despawnPersonalVehicles;
-        private bool despawnPublicTransit;
-        private bool despawnBicycles;
-        private bool despawnServiceVehicles;
-        private bool despawnTaxis;
+        private bool m_HighlightDirty;
+        private bool m_WasHighlighting;
+        private bool m_DespawnAll;
+        private bool m_DespawnCommercialVehicles;
+        private bool m_DespawnPedestrians;
+        private bool m_DespawnPersonalVehicles;
+        private bool m_DespawnPublicTransit;
+        private bool m_DespawnBicycles;
+        private bool m_DespawnServiceVehicles;
+        private bool m_DespawnTaxis;
 
         public DespawnBehavior despawnBehavior;
         public bool highlightStuckObjects;
@@ -36,14 +38,12 @@ namespace NoTrafficDespawn
         public int deadlockSearchDepth;
         public int maxStuckObjectRemovalCount;
         public int maxStuckObjectSpeed;
-        public bool DespawnAll => this.despawnAll;
-        public bool DespawnPublicTransit => this.despawnPublicTransit;
+        public bool DespawnAll => this.m_DespawnAll;
+        public bool DespawnPublicTransit => this.m_DespawnPublicTransit;
 
-        private bool shouldDisable;
-
-        private int despawnIntervalTicks;
+        private bool m_ShouldDisable;
+        private int m_DespawnIntervalTicks;
         private int m_TicksSinceLastDespawn;
-
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -53,11 +53,11 @@ namespace NoTrafficDespawn
         protected override void OnCreate()
         {
             base.OnCreate();
-            this.stuckMovingObjectSystem = World.GetOrCreateSystemManaged<StuckMovingObjectSystem>();
-            this.simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
-            this.entityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
+            this.m_StuckMovingObjectSystem = World.GetOrCreateSystemManaged<StuckMovingObjectSystem>();
+            this.m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            this.m_EntityCommandBufferSystem = World.GetOrCreateSystemManaged<ModificationBarrier1>();
 
-            Mod.INSTANCE.settings.onSettingsApplied += settings =>
+            Mod.Instance.settings.onSettingsApplied += settings =>
             {
                 if (settings is TrafficDespawnSettings despawnSettings)
                 {
@@ -65,9 +65,9 @@ namespace NoTrafficDespawn
                 }
             };
 
-            this.updateSettings(Mod.INSTANCE.settings);
+            this.updateSettings(Mod.Instance.settings);
 
-            this.unstuckObjectQuery = GetEntityQuery(new EntityQueryDesc
+            this.m_UnstuckObjectQuery = GetEntityQuery(new EntityQueryDesc
             {
                 All = new ComponentType[]
                 {
@@ -81,7 +81,7 @@ namespace NoTrafficDespawn
                 }
             });
 
-            this.stuckObjectQuery = GetEntityQuery(new EntityQueryDesc
+            this.m_StuckObjectQuery = GetEntityQuery(new EntityQueryDesc
             {
                 All = new ComponentType[]
                 {
@@ -96,15 +96,15 @@ namespace NoTrafficDespawn
                 }
             });
 
-            RequireForUpdate(this.stuckObjectQuery);
+            RequireForUpdate(this.m_StuckObjectQuery);
         }
 
         protected override void OnUpdate()
         {
-            if (this.simulationSystem.selectedSpeed <= 0)
+            if (this.m_SimulationSystem.selectedSpeed <= 0)
                 return;
 
-            if (this.shouldDisable)
+            if (this.m_ShouldDisable)
             {
                 this.cleanupAfterDisable();
                 this.Enabled = false;
@@ -112,9 +112,9 @@ namespace NoTrafficDespawn
             }
 
             // --- Main thread: highlightDirty cleanup (infrequent) ---
-            if (highlightDirty)
+            if (m_HighlightDirty)
             {
-                NativeArray<Entity> allStuck = this.stuckObjectQuery.ToEntityArray(Allocator.Temp);
+                NativeArray<Entity> allStuck = this.m_StuckObjectQuery.ToEntityArray(Allocator.Temp);
                 for (int i = 0; i < allStuck.Length; i++)
                 {
                     if (EntityManager.HasComponent<Highlighted>(allStuck[i]))
@@ -129,11 +129,11 @@ namespace NoTrafficDespawn
                     }
                 }
                 allStuck.Dispose();
-                highlightDirty = false;
+                m_HighlightDirty = false;
             }
 
             m_TicksSinceLastDespawn++;
-            bool isDespawnFrame = m_TicksSinceLastDespawn >= despawnIntervalTicks;
+            bool isDespawnFrame = m_TicksSinceLastDespawn >= m_DespawnIntervalTicks;
             if (isDespawnFrame)
                 m_TicksSinceLastDespawn = 0;
 
@@ -141,7 +141,7 @@ namespace NoTrafficDespawn
             NativeReference<int> removalCount = new NativeReference<int>(
                 this.maxStuckObjectRemovalCount, Allocator.TempJob);
 
-            EntityCommandBuffer commandBuffer = this.entityCommandBufferSystem.CreateCommandBuffer();
+            EntityCommandBuffer commandBuffer = this.m_EntityCommandBufferSystem.CreateCommandBuffer();
 
             ProcessStuckEntitiesJob job = new ProcessStuckEntitiesJob
             {
@@ -160,19 +160,19 @@ namespace NoTrafficDespawn
                 despawnBehavior = this.despawnBehavior,
                 highlightStuckObjects = this.highlightStuckObjects,
                 isDespawnFrame = isDespawnFrame,
-                despawnAll = this.despawnAll,
-                despawnCommercialVehicles = this.despawnCommercialVehicles,
-                despawnPedestrians = this.despawnPedestrians,
-                despawnPersonalVehicles = this.despawnPersonalVehicles,
-                despawnPublicTransit = this.despawnPublicTransit,
-                despawnBicycles = this.despawnBicycles,
-                despawnServiceVehicles = this.despawnServiceVehicles,
-                despawnTaxis = this.despawnTaxis,
+                despawnAll = this.m_DespawnAll,
+                despawnCommercialVehicles = this.m_DespawnCommercialVehicles,
+                despawnPedestrians = this.m_DespawnPedestrians,
+                despawnPersonalVehicles = this.m_DespawnPersonalVehicles,
+                despawnPublicTransit = this.m_DespawnPublicTransit,
+                despawnBicycles = this.m_DespawnBicycles,
+                despawnServiceVehicles = this.m_DespawnServiceVehicles,
+                despawnTaxis = this.m_DespawnTaxis,
                 deadlockLingerFrames = this.deadlockLingerFrames,
             };
 
-            base.Dependency = JobChunkExtensions.Schedule(job, this.stuckObjectQuery, base.Dependency);
-            this.entityCommandBufferSystem.AddJobHandleForProducer(base.Dependency);
+            base.Dependency = JobChunkExtensions.Schedule(job, this.m_StuckObjectQuery, base.Dependency);
+            this.m_EntityCommandBufferSystem.AddJobHandleForProducer(base.Dependency);
 
             // NativeReference must be disposed after the job completes
             base.Dependency = removalCount.Dispose(base.Dependency);
@@ -180,7 +180,7 @@ namespace NoTrafficDespawn
             // --- Main thread: unstuck entity cleanup (infrequent) ---
             if (this.highlightStuckObjects)
             {
-                NativeArray<Entity> unstuckEntities = this.unstuckObjectQuery.ToEntityArray(Allocator.Temp);
+                NativeArray<Entity> unstuckEntities = this.m_UnstuckObjectQuery.ToEntityArray(Allocator.Temp);
                 for (int i = 0; i < unstuckEntities.Length; i++)
                 {
                     EntityManager.RemoveComponent<StuckObject>(unstuckEntities[i]);
@@ -195,9 +195,9 @@ namespace NoTrafficDespawn
 
         private void updateSettings(TrafficDespawnSettings settings)
         {
-            this.stuckMovingObjectSystem.Enabled = settings.despawnBehavior == DespawnBehavior.Vanilla;
-            this.shouldDisable = settings.despawnBehavior == DespawnBehavior.Vanilla;
-            if (!this.shouldDisable)
+            this.m_StuckMovingObjectSystem.Enabled = settings.despawnBehavior == DespawnBehavior.Vanilla;
+            this.m_ShouldDisable = settings.despawnBehavior == DespawnBehavior.Vanilla;
+            if (!this.m_ShouldDisable)
             {
                 this.Enabled = true;
             }
@@ -209,32 +209,29 @@ namespace NoTrafficDespawn
             this.maxStuckObjectRemovalCount = settings.maxStuckObjectRemovalCount;
             this.maxStuckObjectSpeed = settings.maxStuckObjectSpeed;
 
-            // Clamp to at least 1 so the counter always eventually fires.
-            this.despawnIntervalTicks = settings.despawnIntervalTicks < 1 ? 1 : settings.despawnIntervalTicks;
-            // Reset the counter when settings change so the new interval takes
-            // effect immediately rather than carrying over a stale count.
+            this.m_DespawnIntervalTicks = settings.despawnIntervalTicks < 1 ? 1 : settings.despawnIntervalTicks;
             this.m_TicksSinceLastDespawn = 0;
 
-            if (this.wasHighlighting && !this.highlightStuckObjects)
+            if (this.m_WasHighlighting && !this.highlightStuckObjects)
             {
-                this.highlightDirty = true;
+                this.m_HighlightDirty = true;
             }
 
-            this.wasHighlighting = this.highlightStuckObjects;
+            this.m_WasHighlighting = this.highlightStuckObjects;
 
-            this.despawnAll = settings.despawnAll;
-            this.despawnCommercialVehicles = settings.despawnCommercialVehicles;
-            this.despawnPedestrians = settings.despawnPedestrians;
-            this.despawnPersonalVehicles = settings.despawnPersonalVehicles;
-            this.despawnPublicTransit = settings.despawnPublicTransit;
-            this.despawnBicycles = settings.despawnBicycles;
-            this.despawnServiceVehicles = settings.despawnServiceVehicles;
-            this.despawnTaxis = settings.despawnTaxis;
+            this.m_DespawnAll = settings.despawnAll;
+            this.m_DespawnCommercialVehicles = settings.despawnCommercialVehicles;
+            this.m_DespawnPedestrians = settings.despawnPedestrians;
+            this.m_DespawnPersonalVehicles = settings.despawnPersonalVehicles;
+            this.m_DespawnPublicTransit = settings.despawnPublicTransit;
+            this.m_DespawnBicycles = settings.despawnBicycles;
+            this.m_DespawnServiceVehicles = settings.despawnServiceVehicles;
+            this.m_DespawnTaxis = settings.despawnTaxis;
         }
 
         private void cleanupAfterDisable()
         {
-            NativeArray<Entity> cleanupEntities = this.stuckObjectQuery.ToEntityArray(Allocator.Temp);
+            NativeArray<Entity> cleanupEntities = this.m_StuckObjectQuery.ToEntityArray(Allocator.Temp);
             for (int i = 0; i < cleanupEntities.Length; ++i)
             {
                 if (EntityManager.HasComponent<Highlighted>(cleanupEntities[i]))
